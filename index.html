@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hadiah khusus untuk kamu Macha</title>
+    <style>
+        :root{--bg:#0f1724;--card:#0b1220;--accent:#ff6b6b;--muted:#cbd5e1}
+        html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:linear-gradient(180deg,#071024 0%, #071a2a 60%);color:white}
+        .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+        .card{background:rgba(255,255,255,0.03);padding:32px;border-radius:14px;box-shadow:0 10px 30px rgba(2,6,23,0.6);max-width:760px;width:100%;position:relative;overflow:hidden}
+        h1{margin:0 0 8px;font-size:28px;letter-spacing:0.2px}
+        p.lead{margin:0 0 18px;color:var(--muted)}
+        .buttons{display:flex;gap:12px}
+        .btn{background:linear-gradient(90deg,#3b82f6,#6366f1);border:0;padding:10px 16px;border-radius:10px;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(99,102,241,0.18);transition:transform .12s ease}
+        .btn:active{transform:translateY(1px)}
+        .btn.secondary{background:linear-gradient(90deg,#06b6d4,#14b8a6)}
+        .troll{position:absolute;right:20px;top:20px;background:transparent;border:0;color:var(--muted);font-size:13px}
+        /* animated message */
+        .shimmer{background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.22), rgba(255,255,255,0.06));background-size:200% 100%;animation:sh 3s linear infinite}
+        @keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+        /* confetti container */
+        .confetti-piece{position:absolute;width:10px;height:14px;opacity:0;will-change:transform,opacity}
+        /* modal */
+        .overlay{position:fixed;inset:0;background:rgba(3,7,18,0.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);z-index:40;opacity:0;pointer-events:none;transition:opacity .18s ease}
+        .overlay.show{opacity:1;pointer-events:auto}
+        .modal{background:#071226;padding:18px;border-radius:12px;max-width:720px;width:92%;text-align:center}
+        .modal iframe{width:100%;height:360px;border-radius:8px;border:0}
+        .close{margin-top:12px;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+        /* evade button container */
+        .troll-area{position:relative;height:120px;margin-top:18px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02),transparent);display:flex;align-items:center;justify-content:center}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <button class="troll" aria-hidden>Untuk Macha: Teman cewekku yang baik hati</button>
+            <h1 class="shimmer">Hai, Macha! 🎉</h1>
+            <p class="lead">Aku ada hadiah nih untuk kamu yang sudah berteman denganku, btw jangan klik tombol "Gak mau liat Hadiah" ya 😉</p>
+
+            <div class="buttons">
+                <button id="openBtn" class="btn">Lihat Hadiah</button>
+                <button id="trollBtn" class="btn secondary">Gak mau</button>
+            </div>
+
+            <div class="troll-area" id="area">
+                <small style="color:var(--muted)"></small>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay" class="overlay" role="dialog" aria-hidden="true">
+        <div class="modal" role="document">
+            <h2 style="margin:0 0 8px">Surprise!</h2>
+            <div style="margin-bottom:12px;color:var(--muted)">Jangan marah ya — cuma bercanda 😄</div>
+            <iframe id="videoFrame" src="" title="video" allow="autoplay; fullscreen"></iframe>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+                <button id="closeOverlay" class="close">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const openBtn = document.getElementById('openBtn');
+        const trollBtn = document.getElementById('trollBtn');
+        const overlay = document.getElementById('overlay');
+        const videoFrame = document.getElementById('videoFrame');
+        const closeOverlay = document.getElementById('closeOverlay');
+        const area = document.getElementById('area');
+
+        // Rickroll URL (opens in new tab) and in-overlay embed (YouTube embed URL)
+        const rickUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        const rickEmbed = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0';
+
+        openBtn.addEventListener('click', (e) => {
+            // open new tab (user-initiated)
+            window.open(rickUrl, '_blank');
+            // show overlay with embedded video and confetti
+            videoFrame.src = rickEmbed;
+            overlay.classList.add('show');
+            overlay.setAttribute('aria-hidden','false');
+            createConfetti();
+        });
+
+        closeOverlay.addEventListener('click', () => {
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden','true');
+            videoFrame.src = '';
+        });
+
+        // Troll button: it moves around the whole viewport but stays inside the screen.
+        // Initially the button stays side-by-side with the "Lihat Hadiah" button.
+        const buttonsContainer = document.querySelector('.buttons');
+        let freed = false; // whether the button has been removed from the normal flow
+
+        function moveTrollButton() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const btnRect = trollBtn.getBoundingClientRect();
+            const margin = 8;
+            const maxX = Math.max(margin, vw - btnRect.width - margin);
+            const maxY = Math.max(margin, vh - btnRect.height - margin);
+            const x = Math.floor(Math.random() * (maxX - margin + 1)) + margin;
+            const y = Math.floor(Math.random() * (maxY - margin + 1)) + margin;
+            trollBtn.style.position = 'fixed';
+            trollBtn.style.left = x + 'px';
+            trollBtn.style.top = y + 'px';
+            trollBtn.style.transform = '';
+            trollBtn.style.zIndex = 9999;
+        }
+
+        // Keep the troll button initially side-by-side with the open button
+        function placeTrollInitially(){
+            trollBtn.style.position = 'static';
+            trollBtn.style.left = '';
+            trollBtn.style.top = '';
+            trollBtn.style.transform = '';
+            trollBtn.style.zIndex = '';
+            buttonsContainer.appendChild(trollBtn);
+        }
+        placeTrollInitially();
+
+        // When mouse moves anywhere, if cursor is near the button center, free it from flow and move
+        document.addEventListener('mousemove', (ev) => {
+            const b = trollBtn.getBoundingClientRect();
+            const cx = b.left + b.width/2;
+            const cy = b.top + b.height/2;
+            const dx = ev.clientX - cx;
+            const dy = ev.clientY - cy;
+            const dist = Math.hypot(dx,dy);
+            if(dist < 140){
+                // first time we free it from the buttons container so it can roam
+                if(!freed){
+                    freed = true;
+                    // compute current absolute position to avoid jump
+                    trollBtn.style.position = 'fixed';
+                    trollBtn.style.left = b.left + 'px';
+                    trollBtn.style.top = b.top + 'px';
+                    trollBtn.style.transform = '';
+                    document.body.appendChild(trollBtn);
+                }
+                // move the button smoothly
+                trollBtn.style.transition = 'transform 0.12s ease, left 0.16s ease, top 0.16s ease';
+                moveTrollButton();
+            }
+        });
+
+        // Prevent click from actually doing anything
+        trollBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // tiny joke feedback
+            trollBtn.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:220});
+        });
+
+        // Basic confetti implementation (emoji confetti)
+        function createConfetti(){
+            const colors = ['#f43f5e','#fb923c','#facc15','#34d399','#60a5fa','#a78bfa'];
+            for(let i=0;i<30;i++){
+                const el = document.createElement('div');
+                el.className = 'confetti-piece';
+                el.textContent = ['🎉','💖','✨','🍰'][Math.floor(Math.random()*4)];
+                el.style.left = Math.random()*100 + '%';
+                el.style.top = (-10 - Math.random()*10) + '%';
+                el.style.fontSize = (10 + Math.random()*22) + 'px';
+                el.style.opacity = '1';
+                el.style.color = colors[Math.floor(Math.random()*colors.length)];
+                el.style.zIndex = 45;
+                document.body.appendChild(el);
+                // animate
+                const dx = (Math.random()-0.5) * 200;
+                const dy = 600 + Math.random()*300;
+                el.animate([
+                    {transform: `translate3d(0,0,0)`, opacity:1},
+                    {transform: `translate3d(${dx}px,${dy}px,0) rotate(${Math.random()*720}deg)`, opacity:0}
+                ],{duration: 2200 + Math.random()*1200, easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish = () => el.remove();
+            }
+        }
+
+        // ensure area resizes keep button inside
+        window.addEventListener('resize', ()=>{
+            // re-place if out of bounds
+            const rect = area.getBoundingClientRect();
+            const btnRect = trollBtn.getBoundingClientRect();
+            if(btnRect.right > rect.right || btnRect.bottom > rect.bottom){
+                placeTrollInitially();
+            }
+        });
+    </script>
+</body>
+</html>
